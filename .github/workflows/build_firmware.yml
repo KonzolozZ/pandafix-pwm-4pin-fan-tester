@@ -1,0 +1,70 @@
+# Fájl helye: .github/workflows/build_firmware.yml
+# Funkció: Automatikus MicroPython firmware (.uf2) építése a projekt fájljaival "frozen module"-ként.
+# Utolsó módosítás: 2026. február 05. 22:40:00
+
+name: Build Pandafix Firmware
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Project Code
+      uses: actions/checkout@v4
+      with:
+        path: project
+
+    - name: Checkout MicroPython Repo
+      uses: actions/checkout@v4
+      with:
+        repository: micropython/micropython
+        ref: master # Vagy egy konkrét verzió tag, pl. v1.22.2
+        path: micropython
+
+    - name: Install Build Dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y build-essential libffi-dev git pkg-config gcc-arm-none-eabi libnewlib-arm-none-eabi
+
+    - name: Build MicroPython Cross Compiler (mpy-cross)
+      run: |
+        cd micropython/mpy-cross
+        make
+
+    - name: Copy Project Files to Modules
+      run: |
+        # Létrehozzuk a célkönyvtárat a moduloknak, ha nem létezne
+        mkdir -p micropython/ports/rp2/modules
+        
+        # Átmásoljuk a projekt összes .py fájlját a modules mappába
+        # Ezáltal "frozen module"-ként kerülnek a firmware-be
+        cp project/main.py micropython/ports/rp2/modules/
+        cp project/config.py micropython/ports/rp2/modules/
+        cp project/fan_control.py micropython/ports/rp2/modules/
+        cp project/inputs.py micropython/ports/rp2/modules/
+        cp project/locales.py micropython/ports/rp2/modules/
+        cp project/settings_manager.py micropython/ports/rp2/modules/
+        cp project/ssd1306.py micropython/ports/rp2/modules/
+        cp project/ui_display.py micropython/ports/rp2/modules/
+        
+        echo "A következő fájlok kerülnek beépítésre:"
+        ls -la micropython/ports/rp2/modules/
+
+    - name: Build Firmware (RP2)
+      run: |
+        cd micropython/ports/rp2
+        # Init submodules (pl. lib/pico-sdk)
+        make submodules
+        # Fordítás
+        make BOARD=RPI_PICO
+
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: pandafix-firmware
+        path: micropython/ports/rp2/build-RPI_PICO/firmware.uf2

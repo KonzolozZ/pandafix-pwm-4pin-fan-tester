@@ -1,5 +1,4 @@
-# Fájl helye: /ssd1306.py
-# Funkció: SSD1306 OLED kijelző meghajtó (Hivatalos MicroPython driver).
+# MicroPython SSD1306 OLED driver, I2C and SPI interfaces
 
 from micropython import const
 import framebuf
@@ -152,5 +151,3 @@ class SSD1306_SPI(SSD1306):
         self.cs(0)
         self.spi.write(buf)
         self.cs(1)
-
-# Utolsó módosítás: 2026. február 05. 22:15:00
