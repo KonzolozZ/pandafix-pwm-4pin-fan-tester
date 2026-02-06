@@ -1,6 +1,6 @@
 # Fájl helye: /ui_display.py
 # Funkció: OLED kijelző kezelése, menük kirajzolása, animációk és rendszer hőmérséklet mérése.
-# Tartalmazza a gördülő szöveg és a Star Wars effektus logikáját.
+# Tartalmazza a gördülő szöveg (késleltetéssel és maszkolással) és a Star Wars effektus logikáját.
 
 from machine import I2C, Pin, ADC
 from ssd1306 import SSD1306_I2C
@@ -15,6 +15,10 @@ FAN_ICON = [
     [0x18, 0x3C, 0x7E, 0xFF, 0xFF, 0x7E, 0x3C, 0x18],
     [0x42, 0x24, 0xBD, 0xFF, 0xFF, 0xBD, 0x24, 0x42]
 ]
+
+# Görgetés beállítások
+SCROLL_START_DELAY_MS = 500   # Mennyi ideig álljon a szöveg, mielőtt elindul
+ARROW_MARGIN = 12             # Hely a nyilaknak pixelben (bal és jobb oldalon)
 
 class SystemMonitor:
     def __init__(self):
@@ -85,36 +89,88 @@ class DisplayManager:
         temp_str = f"{temp_val}C"
         self.oled.text(temp_str, config.OLED_WIDTH - (len(temp_str)*8), 0, 1)
 
-    def _draw_scrolling_text_horizontal(self, text, y_pos, start_time):
-        """Vízszintesen gördülő szöveg (Marquee) - Jobbról balra, szünettel."""
+    def _draw_scrolling_text_horizontal(self, text, y_pos, start_time, margin=0):
+        """
+        Vízszintesen gördülő szöveg (Marquee).
+        - start_delay: vár, mielőtt elindul.
+        - margin: kihagyja a helyet a széleken (pl. nyilaknak), de a szöveg mögötte fut.
+          A hívónak kell maszkolnia a széleket, ha le akarja vágni a szöveget.
+        """
         text_width = len(text) * 8
-        screen_width = config.OLED_WIDTH
+        # A rendelkezésre álló szélesség a margók között
+        window_width = config.OLED_WIDTH - (2 * margin)
         
-        if text_width <= screen_width:
-            # Ha kifér, középre igazítjuk
-            x_pos = (screen_width - text_width) // 2
+        # Számított X pozíció a margóhoz igazítva
+        base_x = margin 
+
+        if text_width <= window_width:
+            # Ha kifér, középre igazítjuk a rendelkezésre álló ablakban
+            x_pos = margin + (window_width - text_width) // 2
             self.oled.text(text, x_pos, y_pos, 1)
         else:
-            # Ha nem fér ki, görgetés
+            # Ha nem fér ki, görgetés logika
             elapsed = time.ticks_diff(time.ticks_ms(), start_time)
             
-            # Teljes út hossza: bejön jobbról, kimegy balra
-            total_travel_pixels = screen_width + text_width
-            
-            # Idő egy ciklushoz
-            cycle_time_ms = int((total_travel_pixels * 1000) / config.SCROLL_SPEED_HORIZONTAL)
-            total_cycle_time = cycle_time_ms + config.SCROLL_WAIT_MS
-            
-            current_cycle_time = elapsed % total_cycle_time
-            
-            if current_cycle_time < cycle_time_ms:
-                # Mozgás fázis
-                pixel_offset = int((current_cycle_time / cycle_time_ms) * total_travel_pixels)
-                x_pos = screen_width - pixel_offset
-                self.oled.text(text, x_pos, y_pos, 1)
+            # Késleltetés ellenőrzése
+            if elapsed < SCROLL_START_DELAY_MS:
+                # Még várakozunk: A szöveg eleje látszik (balra igazítva a margónál)
+                self.oled.text(text, base_x, y_pos, 1)
             else:
-                # Várakozás fázis (üres képernyő)
-                pass 
+                # Görgetés fázis
+                # Levonjuk a késleltetési időt a számításból
+                scroll_elapsed = elapsed - SCROLL_START_DELAY_MS
+                
+                # Teljes út hossza: bejön jobbról (vagy a végétől), kimegy balra
+                # A kérés szerint: "folyjon a szöveg jobbról balra" - ez a standard marquee, 
+                # de a delay miatt inkább onnan indulunk, ahol állt, és kimegy balra.
+                
+                # 1. opció: A szöveg eleje látszik, majd elindul balra, amíg a vége be nem ér, majd szünet, majd reset.
+                # Ez olvashatóbb, mint a folyamatosan áthúzó szöveg.
+                
+                # Út hossza: A szöveg teljes hossza plusz a képernyő szélessége a resethez
+                # De a felhasználó azt kérte: "eleje látszik... majd elkezd futni"
+                
+                # Mennyit kell menni, hogy a szöveg vége is látsszon és eltűnjön?
+                travel_distance = text_width + window_width 
+                
+                cycle_time_ms = int((travel_distance * 1000) / config.SCROLL_SPEED_HORIZONTAL)
+                total_cycle_time = cycle_time_ms + config.SCROLL_WAIT_MS
+                
+                current_cycle_time = scroll_elapsed % total_cycle_time
+                
+                if current_cycle_time < cycle_time_ms:
+                    pixel_offset = int((current_cycle_time / cycle_time_ms) * travel_distance)
+                    # Indulás: base_x (ahol állt)
+                    # De ha travel_distance-t használunk, az folyamatos futás.
+                    # Módosított logika a kéréshez igazodva (onnan indul ahol állt):
+                    
+                    # Induló pozíció: base_x. Cél: teljesen kimegy balra (-text_width).
+                    # Utána visszajön jobbról vagy resetel.
+                    # Egyszerűsítsük a standard marquee-re, de a delay után.
+                    
+                    # Ha a delay letelt, folyamatosan csúszik balra az x pozíció
+                    # Kezdőpont: base_x
+                    x_pos = base_x - pixel_offset
+                    
+                    # Ha már nagyon kiment balra, és jönne be jobbról (ciklus)
+                    if x_pos < -text_width:
+                        x_pos += (text_width + window_width + 20) # +20 pixel rés
+                        
+                    self.oled.text(text, x_pos, y_pos, 1)
+                else:
+                    # Várakozás a ciklus végén (üres képernyő vagy újraindulás előtt)
+                    pass
+
+    def _draw_arrows_and_mask(self, y_pos):
+        """Kirajzolja a maszkoló téglalapokat és a nyilakat."""
+        # Bal oldal törlése (maszkolás)
+        self.oled.fill_rect(0, y_pos, ARROW_MARGIN, 8, 0)
+        # Jobb oldal törlése (maszkolás)
+        self.oled.fill_rect(config.OLED_WIDTH - ARROW_MARGIN, y_pos, ARROW_MARGIN, 8, 0)
+        
+        # Nyilak kirajzolása
+        self.oled.text("<", 0, y_pos, 1)
+        self.oled.text(">", config.OLED_WIDTH - 8, y_pos, 1)
 
     def draw_about_screen(self, start_time):
         """Star Wars stílusú, lentről felfelé úszó szöveg."""
@@ -146,45 +202,45 @@ class DisplayManager:
         self.show()
 
     def draw_menu(self, title_key, items_keys, selected_idx, start_time):
-        """Főmenü kirajzolása."""
+        """Főmenü kirajzolása maszkolással és nyilakkal."""
         self.clear()
         self.oled.text(self.get_text(title_key), 10, 0, 1)
         
-        # Navigációs nyilak
-        self.oled.text("<", 0, 16, 1)
-        self.oled.text(">", config.OLED_WIDTH - 8, 16, 1)
-        
-        # Szöveg görgetéssel
         key = items_keys[selected_idx]
         item_text = self.get_text(key)
-        self._draw_scrolling_text_horizontal(item_text, 16, start_time)
+        
+        # 1. Szöveg kirajzolása (görgetve, margóval számolva)
+        self._draw_scrolling_text_horizontal(item_text, 16, start_time, margin=ARROW_MARGIN)
+        
+        # 2. Szélek letakarása és nyilak rárajzolása
+        self._draw_arrows_and_mask(16)
         
         self.show()
 
     def draw_language_selector(self, lang_list, selected_idx, start_time):
-        """Nyelvválasztó képernyő."""
+        """Nyelvválasztó képernyő maszkolással."""
         self.clear()
         self.oled.text(self.get_text("mode_language"), 0, 0, 1)
         
         try:
             lang_code = lang_list[selected_idx]
-            # A nyelv saját neve
             lang_data = locales.get_locale(lang_code)
             lang_name = lang_data.get("lang_name", lang_code)
             
-            self.oled.text("<", 0, 16, 1)
-            self.oled.text(">", config.OLED_WIDTH - 8, 16, 1)
-            # Itt is görgetjük, ha a nyelv neve hosszú lenne
-            self._draw_scrolling_text_horizontal(lang_name, 16, start_time)
+            # Szöveg
+            self._draw_scrolling_text_horizontal(lang_name, 16, start_time, margin=ARROW_MARGIN)
+            
+            # Maszk és nyilak
+            self._draw_arrows_and_mask(16)
+            
         except Exception as e:
-            # Fallback hiba esetén, hogy ne fagyjon le
             print(f"UI Error: {e}")
             self.oled.text("Error", 30, 16, 1)
         
         self.show()
 
     def draw_value_selector(self, title_key, current_val, unit_key=""):
-        """Értékválasztó képernyő (pl. pwm lépés, debounce)."""
+        """Értékválasztó képernyő maszkolással."""
         self.clear()
         self.oled.text(self.get_text(title_key), 0, 0, 1)
         
@@ -196,10 +252,15 @@ class DisplayManager:
         else:
             val_text = str(current_val)
             
+        # Mivel a számok rövidek, itt nem feltétlenül kell görgetés, 
+        # de a konzisztencia és a nyilak miatt használjuk a biztonságos kirajzolást.
         text_pos_x = max(0, (config.OLED_WIDTH - (len(val_text) * 8)) // 2)
         
-        self.oled.text("<", 0, 16, 1)
+        # Itt egyszerűsítünk: a számok kiférnek, nem kell görgetni, de a nyilakat rajzoljuk.
         self.oled.text(val_text, text_pos_x, 16, 1)
+        
+        # Nyilak (itt nem kell maszkolni, mert a szám rövid)
+        self.oled.text("<", 0, 16, 1)
         self.oled.text(">", config.OLED_WIDTH - 8, 16, 1)
         
         self.show()
@@ -242,4 +303,4 @@ class DisplayManager:
         
         self.show()
 
-# Utolsó módosítás: 2026. február 06. 09:40:00
+# Utolsó módosítás: 2026. február 06. 10:00:00
