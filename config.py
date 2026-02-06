@@ -41,11 +41,11 @@ DEBOUNCE_OPTIONS = [50, 100, 200, 300, 500] # ms
 SUPPORTED_LANGUAGES = ["en", "hu", "de", "es", "fr", "it"]
 
 # Animációs sebességek
-SCROLL_SPEED_HORIZONTAL = 40  # Pixel/mp (kb)
-SCROLL_SPEED_VERTICAL = 20    # Pixel/mp (About screen)
-SCROLL_WAIT_MS = 1000         # Várakozás görgetés után
+SCROLL_SPEED_HORIZONTAL = 40  # Pixel/mp (vízszintes görgetés)
+SCROLL_SPEED_VERTICAL = 15    # Pixel/mp (About screen függőleges)
+SCROLL_WAIT_MS = 1000         # Várakozás görgetés után (ms)
 
 # ========== DEBUG ==========
 DEBUG_MODE = True
 
-# Utolsó módosítás: 2026. február 06. 09:20:00
+# Utolsó módosítás: 2026. február 06. 09:40:00

@@ -1,5 +1,5 @@
 # Fájl helye: /main.py
-# Funkció: A rendszer inicializálása és a fő eseményhurok. Beállítások, About, Gördülő szövegek támogatása.
+# Funkció: A rendszer inicializálása és a fő eseményhurok. Hibatűrő kijelző frissítés.
 
 import uasyncio as asyncio
 import config
@@ -95,9 +95,9 @@ class App:
     def _change_state(self, new_state):
         """Állapotváltás segédfüggvény az időzítők resetelésével."""
         self.state = new_state
-        self.state_start_time = time.ticks_ms()
-        # Ha menübe lépünk, reseteljük a görgetést is
-        self.last_menu_change_time = self.state_start_time
+        now = time.ticks_ms()
+        self.state_start_time = now
+        self.last_menu_change_time = now
 
     async def run(self):
         """Fő aszinkron hurok."""
@@ -122,12 +122,9 @@ class App:
             await asyncio.sleep_ms(100)
 
     async def _task_display(self):
-        """Képernyő frissítése."""
+        """Képernyő frissítése hibatűréssel."""
         while True:
             try:
-                # Menük esetén a last_menu_change_time-ot használjuk a görgetéshez,
-                # hogy amikor a felhasználó vált, a szöveg elölről induljon.
-                
                 if self.state == "MENU":
                     self.display.draw_menu("menu_title", self.MAIN_MENU_KEYS, self.menu_idx, self.last_menu_change_time)
                 
@@ -138,7 +135,6 @@ class App:
                     self.display.draw_about_screen(self.state_start_time)
 
                 elif self.state == "SELECT_LANG":
-                    # Itt is görgethetjük a nyelv nevét ha hosszú
                     self.display.draw_language_selector(self.LANG_CODES, self.lang_sel_idx, self.last_menu_change_time)
                 
                 elif self.state == "SELECT_STEP":
@@ -162,7 +158,8 @@ class App:
                      self.display.draw_test_screen("mode_target", self.fan.current_duty_percent, self.fan.current_rpm, self.fan.stall_detected, target_rpm=self.target_rpm_list[self.target_rpm_idx])
             
             except Exception as e:
-                print(f"Display error: {e}")
+                # Ha hiba van a kijelzésben, ne álljon meg a program, csak írjuk ki soros portra
+                print(f"Display Error in loop: {e}")
             
             await asyncio.sleep_ms(50) # 20 FPS
 
@@ -177,7 +174,7 @@ class App:
             
             if self.flag_menu_pressed:
                 self.menu_idx = (self.menu_idx + 1) % len(self.MAIN_MENU_KEYS)
-                self.last_menu_change_time = current_time # Reset scroll
+                self.last_menu_change_time = current_time # Scroll reset
                 self.flag_menu_pressed = False
                 
             if self.flag_select_pressed:
@@ -216,7 +213,6 @@ class App:
                 item_id = self.SETT_MENU_IDS[self.settings_menu_idx]
                 if item_id == "LANG":
                     self._change_state("SELECT_LANG")
-                    self.last_menu_change_time = current_time
                 elif item_id == "STEP":
                     self._change_state("SELECT_STEP")
                 elif item_id == "DEBOUNCE":
@@ -269,7 +265,6 @@ class App:
                 self.flag_select_pressed = False
 
         # --- EGYÉB TESZT MÓDOK ---
-        # (Auto, Manual, Target logikája ugyanaz, mint előzőleg, csak a visszalépésnél a MENU-be megy)
         elif self.state == "MESSAGE_SAVED":
             if time.ticks_diff(current_time, self.saved_message_start) > 1500:
                 self._change_state("SETTINGS_MENU")
@@ -331,4 +326,4 @@ if __name__ == "__main__":
         pwm = PWM(Pin(config.PIN_PWM))
         pwm.duty_u16(0)
 
-# Utolsó módosítás: 2026. február 06. 09:20:00
+# Utolsó módosítás: 2026. február 06. 09:40:00

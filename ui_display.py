@@ -1,5 +1,6 @@
 # Fájl helye: /ui_display.py
-# Funkció: OLED kijelző kezelése, menük kirajzolása, animációk és rendszer hőmérséklet mérése. Többnyelvű támogatással, gördülő szöveggel.
+# Funkció: OLED kijelző kezelése, menük kirajzolása, animációk és rendszer hőmérséklet mérése.
+# Tartalmazza a gördülő szöveg és a Star Wars effektus logikáját.
 
 from machine import I2C, Pin, ADC
 from ssd1306 import SSD1306_I2C
@@ -80,11 +81,12 @@ class DisplayManager:
 
     def _draw_statusbar(self, temp_val):
         """Felső sáv hőmérséklettel."""
+        # Jobb felső sarok: Hőmérséklet
         temp_str = f"{temp_val}C"
         self.oled.text(temp_str, config.OLED_WIDTH - (len(temp_str)*8), 0, 1)
 
     def _draw_scrolling_text_horizontal(self, text, y_pos, start_time):
-        """Vízszintesen gördülő szöveg, ha túl hosszú."""
+        """Vízszintesen gördülő szöveg (Marquee) - Jobbról balra, szünettel."""
         text_width = len(text) * 8
         screen_width = config.OLED_WIDTH
         
@@ -95,43 +97,23 @@ class DisplayManager:
         else:
             # Ha nem fér ki, görgetés
             elapsed = time.ticks_diff(time.ticks_ms(), start_time)
-            # A sebesség: pixel / 1000ms. Pl. 40px/mp
-            offset = int((elapsed / 1000) * config.SCROLL_SPEED_HORIZONTAL)
             
-            # Ciklus hossza: szöveg szélessége + képernyő szélessége (hogy teljesen kimenjen)
-            cycle_length = text_width + screen_width
+            # Teljes út hossza: bejön jobbról, kimegy balra
+            total_travel_pixels = screen_width + text_width
             
-            # Pozíció a cikluson belül
-            # Induljon a jobb szélről (screen_width)
-            current_x = screen_width - (offset % cycle_length)
-            
-            # Várakozás logika: ha a szöveg teljesen kiment balra, tartsunk szünetet
-            # A képernyő bal széle: -text_width
-            
-            # Egyszerűbb megközelítés: folyamatos görgetés szünettel a resetnél
-            # A tényleges elmozdulás a kezdéstől
-            
-            # Újraimplementálás a kért 1mp szünettel:
-            # Teljes út hossza: text_width - screen_width (hogy a vége is látsszon) vagy inkább teljes áthúzás
-            # A felhasználó kérése: "folyjon a szöveg jobbról balra, majd 1mp várakozás után újra"
-            
-            # Teljes animáció hossza pixelben: screen_width + text_width
-            total_pixels = screen_width + text_width
-            
-            # Idő egy ciklushoz ms-ben
-            cycle_time_ms = (total_pixels * 1000) // config.SCROLL_SPEED_HORIZONTAL
+            # Idő egy ciklushoz
+            cycle_time_ms = int((total_travel_pixels * 1000) / config.SCROLL_SPEED_HORIZONTAL)
             total_cycle_time = cycle_time_ms + config.SCROLL_WAIT_MS
             
             current_cycle_time = elapsed % total_cycle_time
             
             if current_cycle_time < cycle_time_ms:
                 # Mozgás fázis
-                pixel_offset = (current_cycle_time * total_pixels) // cycle_time_ms
+                pixel_offset = int((current_cycle_time / cycle_time_ms) * total_travel_pixels)
                 x_pos = screen_width - pixel_offset
                 self.oled.text(text, x_pos, y_pos, 1)
             else:
-                # Várakozás fázis (üres képernyő vagy reset pozíció előtt)
-                # Ilyenkor a szöveg már kiment balra, tehát nem látszik.
+                # Várakozás fázis (üres képernyő)
                 pass 
 
     def draw_about_screen(self, start_time):
@@ -140,7 +122,7 @@ class DisplayManager:
         
         lines = self.get_text("about_text")
         line_height = 10
-        total_height = len(lines) * line_height
+        total_text_height = len(lines) * line_height
         screen_h = config.OLED_HEIGHT
         
         elapsed = time.ticks_diff(time.ticks_ms(), start_time)
@@ -148,15 +130,15 @@ class DisplayManager:
         pixel_shift = int((elapsed / 1000) * config.SCROLL_SPEED_VERTICAL)
         
         # Ciklus: amíg az utolsó sor is el nem hagyja a képernyőt
-        cycle_pixels = total_height + screen_h
+        cycle_pixels = total_text_height + screen_h
         current_shift = pixel_shift % cycle_pixels
         
-        start_y = screen_h - current_shift
+        start_y_on_screen = screen_h - current_shift
         
         for i, line in enumerate(lines):
-            y = start_y + (i * line_height)
-            # Csak azt rajzoljuk ki, ami a képernyőn van
-            if -10 < y < screen_h:
+            y = start_y_on_screen + (i * line_height)
+            # Csak azt rajzoljuk ki, ami a képernyőn van (optimalizálás)
+            if -line_height < y < screen_h:
                 text_width = len(line) * 8
                 x = (config.OLED_WIDTH - text_width) // 2
                 self.oled.text(line, x, int(y), 1)
@@ -182,7 +164,7 @@ class DisplayManager:
     def draw_language_selector(self, lang_list, selected_idx, start_time):
         """Nyelvválasztó képernyő."""
         self.clear()
-        self.oled.text(self.get_text("mode_language"), 10, 0, 1)
+        self.oled.text(self.get_text("mode_language"), 0, 0, 1)
         
         try:
             lang_code = lang_list[selected_idx]
@@ -192,21 +174,25 @@ class DisplayManager:
             
             self.oled.text("<", 0, 16, 1)
             self.oled.text(">", config.OLED_WIDTH - 8, 16, 1)
+            # Itt is görgetjük, ha a nyelv neve hosszú lenne
             self._draw_scrolling_text_horizontal(lang_name, 16, start_time)
         except Exception as e:
-            # Fallback hiba esetén
+            # Fallback hiba esetén, hogy ne fagyjon le
+            print(f"UI Error: {e}")
             self.oled.text("Error", 30, 16, 1)
         
         self.show()
 
     def draw_value_selector(self, title_key, current_val, unit_key=""):
-        """Értékválasztó képernyő (pl. nyelv, szám)."""
+        """Értékválasztó képernyő (pl. pwm lépés, debounce)."""
         self.clear()
         self.oled.text(self.get_text(title_key), 0, 0, 1)
         
         # Érték szövegének formázása
-        if unit_key:
+        if unit_key and unit_key != "%":
             val_text = f"{current_val} {self.get_text(unit_key)}"
+        elif unit_key == "%":
+             val_text = f"{current_val}%"
         else:
             val_text = str(current_val)
             
@@ -232,7 +218,6 @@ class DisplayManager:
         
         # 1. sor: Mód és Hőmérséklet
         mode_str = self.get_text(mode_key)
-        # Ha túl hosszú, vágjuk le statikusan (itt nem görgetünk, mert zavaró lenne a számok mellett)
         if len(mode_str) > 11: 
             mode_str = mode_str[:11]
             
@@ -244,10 +229,8 @@ class DisplayManager:
              self.oled.text(self.get_text("stall_alert"), 0, 12, 1)
         else:
             if target_rpm is not None:
-                # Target módban a PWM helyett a Cél RPM látszik
                 self.oled.text(f"{self.get_text('target')}:{target_rpm}", 0, 12, 1)
             else:
-                # Normál módban PWM %
                 self.oled.text(f"{self.get_text('pwm')}:{pwm_percent}%", 0, 12, 1)
             
             # 3. sor: RPM
@@ -259,4 +242,4 @@ class DisplayManager:
         
         self.show()
 
-# Utolsó módosítás: 2026. február 06. 09:20:00
+# Utolsó módosítás: 2026. február 06. 09:40:00
