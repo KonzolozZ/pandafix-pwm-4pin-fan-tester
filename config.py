@@ -40,7 +40,12 @@ PWM_STEP_OPTIONS = [5, 10, 20, 25]
 DEBOUNCE_OPTIONS = [50, 100, 200, 300, 500] # ms
 SUPPORTED_LANGUAGES = ["en", "hu", "de", "es", "fr", "it"]
 
+# Animációs sebességek
+SCROLL_SPEED_HORIZONTAL = 40  # Pixel/mp (kb)
+SCROLL_SPEED_VERTICAL = 20    # Pixel/mp (About screen)
+SCROLL_WAIT_MS = 1000         # Várakozás görgetés után
+
 # ========== DEBUG ==========
 DEBUG_MODE = True
 
-# Utolsó módosítás: 2026. február 06. 09:05:00
+# Utolsó módosítás: 2026. február 06. 09:20:00

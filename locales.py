@@ -12,6 +12,7 @@ LOCALES = {
         "mode_manual": "MANUAL TEST",
         "mode_target": "TARGET RPM",
         "mode_settings": "SETTINGS",
+        "mode_about": "ABOUT",
         "set_lang": "LANGUAGE",
         "set_step": "PWM STEP",
         "set_debounce": "BUTTON SENS.",
@@ -25,7 +26,21 @@ LOCALES = {
         "saved": "Saved!",
         "unit_ms": "ms",
         "back": "Back",
-        "lang_name": "English"
+        "lang_name": "English",
+        "about_text": [
+            "Pandafix Fan Tester",
+            "Created by:",
+            "pandafix.hu",
+            "Dev: EkE",
+            "",
+            "Features:",
+            "- PWM Control",
+            "- RPM Reading",
+            "- OLED Display",
+            "- Auto/Manual Modes",
+            "",
+            "Thanks for using!"
+        ]
     },
     "hu": {
         "app_name": "Pandafix",
@@ -37,6 +52,7 @@ LOCALES = {
         "mode_manual": "KEZI TESZT",
         "mode_target": "CEL RPM",
         "mode_settings": "BEALLITASOK",
+        "mode_about": "NEVJEGY",
         "set_lang": "NYELV / LANG",
         "set_step": "PWM LEPTEK",
         "set_debounce": "GOMB ERZEK.",
@@ -50,7 +66,21 @@ LOCALES = {
         "saved": "Mentve!",
         "unit_ms": "ms",
         "back": "Vissza",
-        "lang_name": "Magyar"
+        "lang_name": "Magyar",
+        "about_text": [
+            "Pandafix Fan Tester",
+            "Keszitette:",
+            "pandafix.hu",
+            "Fejleszto: EkE",
+            "",
+            "Funkciok:",
+            "- PWM Vezerles",
+            "- Fordulatszam meres",
+            "- OLED Kijelzo",
+            "- Auto/Kezi modok",
+            "",
+            "Koszonom, hogy hasznalod!"
+        ]
     },
     "de": {
         "app_name": "Pandafix",
@@ -62,6 +92,7 @@ LOCALES = {
         "mode_manual": "MANUELL",
         "mode_target": "ZIEL RPM",
         "mode_settings": "EINSTELLUNG",
+        "mode_about": "UEBER",
         "set_lang": "SPRACHE",
         "set_step": "PWM SCHRITT",
         "set_debounce": "TASTEN SENS.",
@@ -75,7 +106,20 @@ LOCALES = {
         "saved": "Gesp.!",
         "unit_ms": "ms",
         "back": "Zurueck",
-        "lang_name": "Deutsch"
+        "lang_name": "Deutsch",
+        "about_text": [
+            "Pandafix Fan Tester",
+            "Erstellt von:",
+            "pandafix.hu",
+            "Dev: EkE",
+            "",
+            "Funktionen:",
+            "- PWM Steuerung",
+            "- RPM Messung",
+            "- OLED Anzeige",
+            "",
+            "Danke!"
+        ]
     },
     "es": {
         "app_name": "Pandafix",
@@ -87,6 +131,7 @@ LOCALES = {
         "mode_manual": "MANUAL",
         "mode_target": "RPM OBJ.",
         "mode_settings": "AJUSTES",
+        "mode_about": "ACERCA DE",
         "set_lang": "IDIOMA",
         "set_step": "PASO PWM",
         "set_debounce": "SENS. BOTON",
@@ -100,7 +145,20 @@ LOCALES = {
         "saved": "Guard.!",
         "unit_ms": "ms",
         "back": "Atras",
-        "lang_name": "Espanol"
+        "lang_name": "Espanol",
+        "about_text": [
+            "Pandafix Fan Tester",
+            "Creado por:",
+            "pandafix.hu",
+            "Dev: EkE",
+            "",
+            "Funciones:",
+            "- Control PWM",
+            "- Lectura RPM",
+            "- Pantalla OLED",
+            "",
+            "Gracias!"
+        ]
     },
     "fr": {
         "app_name": "Pandafix",
@@ -112,6 +170,7 @@ LOCALES = {
         "mode_manual": "MANUEL",
         "mode_target": "CIBLE RPM",
         "mode_settings": "PARAMETRES",
+        "mode_about": "A PROPOS",
         "set_lang": "LANGUE",
         "set_step": "ETAPE PWM",
         "set_debounce": "SENS. BOUTON",
@@ -125,7 +184,20 @@ LOCALES = {
         "saved": "Enreg.!",
         "unit_ms": "ms",
         "back": "Retour",
-        "lang_name": "Francais"
+        "lang_name": "Francais",
+        "about_text": [
+            "Pandafix Fan Tester",
+            "Cree par:",
+            "pandafix.hu",
+            "Dev: EkE",
+            "",
+            "Fonctions:",
+            "- Controle PWM",
+            "- Lecture RPM",
+            "- Ecran OLED",
+            "",
+            "Merci!"
+        ]
     },
     "it": {
         "app_name": "Pandafix",
@@ -137,6 +209,7 @@ LOCALES = {
         "mode_manual": "MANUALE",
         "mode_target": "TARGET RPM",
         "mode_settings": "IMPOSTAZIONI",
+        "mode_about": "INFO",
         "set_lang": "LINGUA",
         "set_step": "PASSO PWM",
         "set_debounce": "SENS. TASTO",
@@ -150,7 +223,20 @@ LOCALES = {
         "saved": "Salv.!",
         "unit_ms": "ms",
         "back": "Indietro",
-        "lang_name": "Italiano"
+        "lang_name": "Italiano",
+        "about_text": [
+            "Pandafix Fan Tester",
+            "Creato da:",
+            "pandafix.hu",
+            "Dev: EkE",
+            "",
+            "Funzioni:",
+            "- Controllo PWM",
+            "- Lettura RPM",
+            "- Schermo OLED",
+            "",
+            "Grazie!"
+        ]
     }
 }
 
@@ -160,4 +246,4 @@ def get_locale(lang_code):
         return LOCALES[lang_code]
     return LOCALES["en"] # Fallback
 
-# Utolsó módosítás: 2026. február 06. 09:05:00
+# Utolsó módosítás: 2026. február 06. 09:20:00
