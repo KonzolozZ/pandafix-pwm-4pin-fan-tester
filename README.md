@@ -3,7 +3,8 @@
 ![Language](https://img.shields.io/badge/language-MicroPython-blue.svg)
 ![Platform](https://img.shields.io/badge/platform-Raspberry%20Pi%20Pico-red.svg)
 ![License](https://img.shields.io/badge/license-GPL--3.0-green.svg)
-#Multilanguage README Pattern
+
+# Multilanguage README Pattern
 [![en](https://img.shields.io/badge/lang-en-red.svg)](https://github.com/KonzolozZ/pandafix-pwm-4pin-fan-tester/blob/master/README.md)
 [![pt-br](https://img.shields.io/badge/lang-hu-green.svg)](https://github.com/KonzolozZ/pandafix-pwm-4pin-fan-tester/blob/master/README-HU.md)
 
