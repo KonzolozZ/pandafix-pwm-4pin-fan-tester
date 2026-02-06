@@ -11,7 +11,10 @@ LOCALES = {
         "mode_auto": "AUTO TEST",
         "mode_manual": "MANUAL TEST",
         "mode_target": "TARGET RPM",
-        "mode_language": "LANGUAGE",
+        "mode_settings": "SETTINGS",
+        "set_lang": "LANGUAGE",
+        "set_step": "PWM STEP",
+        "set_debounce": "BUTTON SENS.",
         "pwm": "PWM",
         "rpm": "RPM",
         "target": "TGT",
@@ -20,6 +23,8 @@ LOCALES = {
         "btn_nav": "A:Select B:Menu",
         "btn_back": "B: Back",
         "saved": "Saved!",
+        "unit_ms": "ms",
+        "back": "Back",
         "lang_name": "English"
     },
     "hu": {
@@ -31,7 +36,10 @@ LOCALES = {
         "mode_auto": "AUTO TESZT",
         "mode_manual": "KEZI TESZT",
         "mode_target": "CEL RPM",
-        "mode_language": "NYELV / LANG",
+        "mode_settings": "BEALLITASOK",
+        "set_lang": "NYELV / LANG",
+        "set_step": "PWM LEPTEK",
+        "set_debounce": "GOMB ERZEK.",
         "pwm": "PWM",
         "rpm": "RPM",
         "target": "CEL",
@@ -40,6 +48,8 @@ LOCALES = {
         "btn_nav": "A:Valaszt B:Menu",
         "btn_back": "B: Vissza",
         "saved": "Mentve!",
+        "unit_ms": "ms",
+        "back": "Vissza",
         "lang_name": "Magyar"
     },
     "de": {
@@ -51,7 +61,10 @@ LOCALES = {
         "mode_auto": "AUTO TEST",
         "mode_manual": "MANUELL",
         "mode_target": "ZIEL RPM",
-        "mode_language": "SPRACHE",
+        "mode_settings": "EINSTELLUNG",
+        "set_lang": "SPRACHE",
+        "set_step": "PWM SCHRITT",
+        "set_debounce": "TASTEN SENS.",
         "pwm": "PWM",
         "rpm": "RPM",
         "target": "ZIEL",
@@ -60,6 +73,8 @@ LOCALES = {
         "btn_nav": "A:Wahl B:Menu",
         "btn_back": "B: Zurueck",
         "saved": "Gesp.!",
+        "unit_ms": "ms",
+        "back": "Zurueck",
         "lang_name": "Deutsch"
     },
     "es": {
@@ -71,7 +86,10 @@ LOCALES = {
         "mode_auto": "AUTO TEST",
         "mode_manual": "MANUAL",
         "mode_target": "RPM OBJ.",
-        "mode_language": "IDIOMA",
+        "mode_settings": "AJUSTES",
+        "set_lang": "IDIOMA",
+        "set_step": "PASO PWM",
+        "set_debounce": "SENS. BOTON",
         "pwm": "PWM",
         "rpm": "RPM",
         "target": "OBJ",
@@ -80,6 +98,8 @@ LOCALES = {
         "btn_nav": "A:Sel B:Menu",
         "btn_back": "B: Atras",
         "saved": "Guard.!",
+        "unit_ms": "ms",
+        "back": "Atras",
         "lang_name": "Espanol"
     },
     "fr": {
@@ -91,7 +111,10 @@ LOCALES = {
         "mode_auto": "TEST AUTO",
         "mode_manual": "MANUEL",
         "mode_target": "CIBLE RPM",
-        "mode_language": "LANGUE",
+        "mode_settings": "PARAMETRES",
+        "set_lang": "LANGUE",
+        "set_step": "ETAPE PWM",
+        "set_debounce": "SENS. BOUTON",
         "pwm": "PWM",
         "rpm": "RPM",
         "target": "CIBL",
@@ -100,6 +123,8 @@ LOCALES = {
         "btn_nav": "A:Sel B:Menu",
         "btn_back": "B: Retour",
         "saved": "Enreg.!",
+        "unit_ms": "ms",
+        "back": "Retour",
         "lang_name": "Francais"
     },
     "it": {
@@ -111,7 +136,10 @@ LOCALES = {
         "mode_auto": "TEST AUTO",
         "mode_manual": "MANUALE",
         "mode_target": "TARGET RPM",
-        "mode_language": "LINGUA",
+        "mode_settings": "IMPOSTAZIONI",
+        "set_lang": "LINGUA",
+        "set_step": "PASSO PWM",
+        "set_debounce": "SENS. TASTO",
         "pwm": "PWM",
         "rpm": "RPM",
         "target": "OBIET",
@@ -120,6 +148,8 @@ LOCALES = {
         "btn_nav": "A:Sel B:Menu",
         "btn_back": "B: Indietro",
         "saved": "Salv.!",
+        "unit_ms": "ms",
+        "back": "Indietro",
         "lang_name": "Italiano"
     }
 }
@@ -130,4 +160,4 @@ def get_locale(lang_code):
         return LOCALES[lang_code]
     return LOCALES["en"] # Fallback
 
-# Utolsó módosítás: 2026. február 05. 22:20:00
+# Utolsó módosítás: 2026. február 06. 09:05:00

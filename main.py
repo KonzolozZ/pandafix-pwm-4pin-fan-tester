@@ -1,5 +1,5 @@
 # Fájl helye: /main.py
-# Funkció: A rendszer inicializálása és a fő eseményhurok (state machine) futtatása aszinkron módon. Többnyelvű és perzisztens beállításokkal.
+# Funkció: A rendszer inicializálása és a fő eseményhurok (state machine) futtatása aszinkron módon. Többnyelvű, perzisztens beállításokkal és beállítások menüvel.
 
 import uasyncio as asyncio
 import config
@@ -9,6 +9,7 @@ from inputs import Button
 from settings_manager import SettingsManager
 import gc
 import time
+import locales
 
 class App:
     def __init__(self):
@@ -21,21 +22,32 @@ class App:
         self.display = DisplayManager(self.settings)
         self.fan = FanController()
         
-        # Menü struktúra (nyelvi kulcsok)
-        self.MENU_KEYS = ["mode_auto", "mode_manual", "mode_target", "mode_language"]
-        self.MENU_IDS = ["AUTO", "MANUAL", "TARGET", "LANG"]
+        # Főmenü struktúra
+        self.MAIN_MENU_KEYS = ["mode_auto", "mode_manual", "mode_target", "mode_settings"]
+        self.MAIN_MENU_IDS = ["AUTO", "MANUAL", "TARGET", "SETTINGS"]
         
-        # Nyelvek listája
+        # Beállítások menü struktúra
+        self.SETT_MENU_KEYS = ["set_lang", "set_step", "set_debounce", "back"]
+        self.SETT_MENU_IDS = ["LANG", "STEP", "DEBOUNCE", "BACK"]
+        
+        # Listák a beállításokhoz
         self.LANG_CODES = config.SUPPORTED_LANGUAGES
+        self.STEP_OPTIONS = config.PWM_STEP_OPTIONS
+        self.DEBOUNCE_OPTIONS = config.DEBOUNCE_OPTIONS
         
         # Állapotváltozók
         self.state = "SPLASH"
         self.menu_idx = 0
-        self.lang_menu_idx = 0
+        self.settings_menu_idx = 0
+        
+        # Selector indexek (a settingsből inicializálva)
+        self.lang_sel_idx = 0
+        self.step_sel_idx = 0
+        self.debounce_sel_idx = 0
         
         # Teszt változók
         self.manual_pwm_idx = 0
-        self.pwm_steps = [0, 20, 40, 60, 80, 100]
+        self.pwm_steps = [] # Dinamikusan generálva
         self.auto_step_idx = 0
         self.last_auto_step_time = 0
         
@@ -47,15 +59,36 @@ class App:
         self.flag_menu_pressed = False
         self.flag_select_pressed = False
 
-        # Gomb objektumok
-        self.btn_menu = Button(config.PIN_MENU, self._cb_menu_press)
-        self.btn_select = Button(config.PIN_SELECT, self._cb_select_press)
+        # Gomb objektumok (a settingsből betöltött debounce értékkel)
+        initial_debounce = self.settings.get("debounce_ms")
+        self.btn_menu = Button(config.PIN_MENU, self._cb_menu_press, initial_debounce)
+        self.btn_select = Button(config.PIN_SELECT, self._cb_select_press, initial_debounce)
 
     def _cb_menu_press(self):
         self.flag_menu_pressed = True
 
     def _cb_select_press(self):
         self.flag_select_pressed = True
+        
+    def _init_selector_indices(self):
+        """Beállítja a kiválasztó indexeket az elmentett értékek alapján."""
+        curr_lang = self.settings.get("language")
+        try:
+            self.lang_sel_idx = self.LANG_CODES.index(curr_lang)
+        except ValueError:
+            self.lang_sel_idx = 0
+            
+        curr_step = self.settings.get("pwm_step")
+        try:
+            self.step_sel_idx = self.STEP_OPTIONS.index(curr_step)
+        except ValueError:
+            self.step_sel_idx = 0
+            
+        curr_deb = self.settings.get("debounce_ms")
+        try:
+            self.debounce_sel_idx = self.DEBOUNCE_OPTIONS.index(curr_deb)
+        except ValueError:
+            self.debounce_sel_idx = 2 # 200ms default
 
     async def run(self):
         """Fő aszinkron hurok."""
@@ -63,6 +96,7 @@ class App:
         self.display.draw_splash()
         await asyncio.sleep_ms(config.SPLASH_TIME_MS)
         self.state = "MENU"
+        self._init_selector_indices()
         
         # Indítjuk a folyamatos feladatokat
         asyncio.create_task(self._task_update_fan())
@@ -83,10 +117,21 @@ class App:
         """Háttérfolyamat: Képernyő frissítése."""
         while True:
             if self.state == "MENU":
-                self.display.draw_menu(self.MENU_KEYS, self.menu_idx)
+                self.display.draw_menu("menu_title", self.MAIN_MENU_KEYS, self.menu_idx)
+            
+            elif self.state == "SETTINGS_MENU":
+                 self.display.draw_menu("mode_settings", self.SETT_MENU_KEYS, self.settings_menu_idx)
             
             elif self.state == "SELECT_LANG":
-                self.display.draw_language_selector(self.LANG_CODES, self.lang_menu_idx)
+                self.display.draw_language_selector(self.LANG_CODES, self.lang_sel_idx)
+            
+            elif self.state == "SELECT_STEP":
+                val = self.STEP_OPTIONS[self.step_sel_idx]
+                self.display.draw_value_selector("set_step", val, "%")
+            
+            elif self.state == "SELECT_DEBOUNCE":
+                val = self.DEBOUNCE_OPTIONS[self.debounce_sel_idx]
+                self.display.draw_value_selector("set_debounce", val, "unit_ms")
                 
             elif self.state == "MESSAGE_SAVED":
                 self.display.draw_message("saved")
@@ -122,61 +167,105 @@ class App:
         """Állapotgép logika."""
         current_time = time.ticks_ms()
         
-        # --- MENÜ ÁLLAPOT ---
+        # --- FŐMENÜ ---
         if self.state == "MENU":
             self.fan.set_duty_percent(0)
             self.fan.disable_target_mode()
             
             if self.flag_menu_pressed:
-                self.menu_idx = (self.menu_idx + 1) % len(self.MENU_KEYS)
+                self.menu_idx = (self.menu_idx + 1) % len(self.MAIN_MENU_KEYS)
                 self.flag_menu_pressed = False
                 
             if self.flag_select_pressed:
-                mode = self.MENU_IDS[self.menu_idx]
+                mode = self.MAIN_MENU_IDS[self.menu_idx]
+                
                 if mode == "AUTO":
                     self.state = "RUN_AUTO"
+                    self.pwm_steps = [0, 20, 40, 60, 80, 100] # Auto mód fix lépcsőkkel
                     self.auto_step_idx = 0
                     self.last_auto_step_time = current_time
+                    
                 elif mode == "MANUAL":
                     self.state = "RUN_MANUAL"
-                    self.manual_pwm_idx = 1
+                    # Manuális mód a beállított lépésközzel
+                    step = self.settings.get("pwm_step")
+                    # Generálunk egy listát 0-tól 100-ig a lépésközzel
+                    self.pwm_steps = list(range(0, 101, step))
+                    if self.pwm_steps[-1] != 100:
+                        self.pwm_steps.append(100) # Biztosítsuk, hogy a 100% benne legyen
+                        
+                    self.manual_pwm_idx = 1 if len(self.pwm_steps) > 1 else 0
                     self.fan.set_duty_percent(self.pwm_steps[self.manual_pwm_idx])
+                    
                 elif mode == "TARGET":
                     self.state = "RUN_TARGET"
                     self.fan.set_target_rpm(self.target_rpm_list[self.target_rpm_idx])
-                elif mode == "LANG":
-                    self.state = "SELECT_LANG"
-                    # Megkeressük az aktuális nyelvet a listában
-                    curr = self.settings.get("language")
-                    try:
-                        self.lang_menu_idx = self.LANG_CODES.index(curr)
-                    except ValueError:
-                        self.lang_menu_idx = 0
+                    
+                elif mode == "SETTINGS":
+                    self.state = "SETTINGS_MENU"
+                    self.settings_menu_idx = 0
                 
+                self.flag_select_pressed = False
+
+        # --- BEÁLLÍTÁSOK MENÜ ---
+        elif self.state == "SETTINGS_MENU":
+            if self.flag_menu_pressed:
+                self.settings_menu_idx = (self.settings_menu_idx + 1) % len(self.SETT_MENU_KEYS)
+                self.flag_menu_pressed = False
+                
+            if self.flag_select_pressed:
+                item_id = self.SETT_MENU_IDS[self.settings_menu_idx]
+                if item_id == "LANG":
+                    self.state = "SELECT_LANG"
+                elif item_id == "STEP":
+                    self.state = "SELECT_STEP"
+                elif item_id == "DEBOUNCE":
+                    self.state = "SELECT_DEBOUNCE"
+                elif item_id == "BACK":
+                    self.state = "MENU"
                 self.flag_select_pressed = False
 
         # --- NYELVVÁLASZTÁS ---
         elif self.state == "SELECT_LANG":
             if self.flag_menu_pressed:
-                self.lang_menu_idx = (self.lang_menu_idx + 1) % len(self.LANG_CODES)
+                self.lang_sel_idx = (self.lang_sel_idx + 1) % len(self.LANG_CODES)
                 self.flag_menu_pressed = False
             
             if self.flag_select_pressed:
-                # Nyelv mentése
-                new_lang = self.LANG_CODES[self.lang_menu_idx]
+                new_lang = self.LANG_CODES[self.lang_sel_idx]
                 self.settings.set("language", new_lang)
                 self.display.update_language()
-                
-                # Visszajelzés
-                self.state = "MESSAGE_SAVED"
-                self.saved_message_start = current_time
-                self.flag_select_pressed = False
+                self._save_and_exit_submenu(current_time)
 
-        # --- ÜZENET MEGJELENÍTÉSE ---
+        # --- PWM LÉPÉS VÁLASZTÁS ---
+        elif self.state == "SELECT_STEP":
+            if self.flag_menu_pressed:
+                self.step_sel_idx = (self.step_sel_idx + 1) % len(self.STEP_OPTIONS)
+                self.flag_menu_pressed = False
+            
+            if self.flag_select_pressed:
+                new_step = self.STEP_OPTIONS[self.step_sel_idx]
+                self.settings.set("pwm_step", new_step)
+                self._save_and_exit_submenu(current_time)
+
+        # --- DEBOUNCE VÁLASZTÁS ---
+        elif self.state == "SELECT_DEBOUNCE":
+            if self.flag_menu_pressed:
+                self.debounce_sel_idx = (self.debounce_sel_idx + 1) % len(self.DEBOUNCE_OPTIONS)
+                self.flag_menu_pressed = False
+            
+            if self.flag_select_pressed:
+                new_deb = self.DEBOUNCE_OPTIONS[self.debounce_sel_idx]
+                self.settings.set("debounce_ms", new_deb)
+                # Azonnali frissítés a futó programban
+                self.btn_menu.update_debounce(new_deb)
+                self.btn_select.update_debounce(new_deb)
+                self._save_and_exit_submenu(current_time)
+
+        # --- ÜZENET ÉS VISSZATÉRÉS ---
         elif self.state == "MESSAGE_SAVED":
             if time.ticks_diff(current_time, self.saved_message_start) > 1500:
-                self.state = "MENU"
-            # Gombok törlése
+                self.state = "SETTINGS_MENU"
             self.flag_menu_pressed = False
             self.flag_select_pressed = False
 
@@ -224,13 +313,18 @@ class App:
         if current_time % 10000 < 50:
             gc.collect()
 
+    def _save_and_exit_submenu(self, current_time):
+        """Beállítás mentése utáni logika."""
+        self.state = "MESSAGE_SAVED"
+        self.saved_message_start = current_time
+        self.flag_select_pressed = False
+
 if __name__ == "__main__":
     app = App()
     try:
         asyncio.run(app.run())
     except KeyboardInterrupt:
         print("Leallitas...")
-        # Reset ventilátor
         from machine import PWM, Pin
         pwm = PWM(Pin(config.PIN_PWM))
         pwm.duty_u16(0)
@@ -238,9 +332,8 @@ if __name__ == "__main__":
         print("Hiba:", e)
         import sys
         sys.print_exception(e)
-        # Hiba esetén biztonsági leállás
         from machine import PWM, Pin
         pwm = PWM(Pin(config.PIN_PWM))
         pwm.duty_u16(0)
 
-# Utolsó módosítás: 2026. február 05. 22:20:00
+# Utolsó módosítás: 2026. február 06. 09:05:00

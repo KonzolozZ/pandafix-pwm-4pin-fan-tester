@@ -30,11 +30,17 @@ TARGET_RPM_TOLERANCE = 100    # Cél RPM tűréshatár (+/-)
 STALL_THRESHOLD_DUTY = 30     # % PWM, ami felett elakadásnak számít a 0 RPM
 MOVING_AVERAGE_SAMPLES = 5    # Hány mérést átlagoljon
 
-# ========== NYELVI BEÁLLÍTÁSOK ==========
+# ========== ALAPÉRTELMEZETT BEÁLLÍTÁSOK ==========
 DEFAULT_LANGUAGE = "en"
+DEFAULT_PWM_STEP = 20         # %-os ugrás manuális módban
+DEFAULT_DEBOUNCE_MS = 200     # Gomb érzéketlenségi idő (pergésmentesítés)
+
+# Opciók a beállítások menühöz
+PWM_STEP_OPTIONS = [5, 10, 20, 25]
+DEBOUNCE_OPTIONS = [50, 100, 200, 300, 500] # ms
 SUPPORTED_LANGUAGES = ["en", "hu", "de", "es", "fr", "it"]
 
 # ========== DEBUG ==========
 DEBUG_MODE = True
 
-# Utolsó módosítás: 2026. február 05. 22:20:00
+# Utolsó módosítás: 2026. február 06. 09:05:00

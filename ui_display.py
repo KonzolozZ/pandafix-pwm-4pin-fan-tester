@@ -84,10 +84,10 @@ class DisplayManager:
         temp_str = f"{temp_val}C"
         self.oled.text(temp_str, config.OLED_WIDTH - (len(temp_str)*8), 0, 1)
 
-    def draw_menu(self, items_keys, selected_idx):
-        """Főmenü kirajzolása. items_keys: a nyelvi kulcsok listája."""
+    def draw_menu(self, title_key, items_keys, selected_idx):
+        """Dinamikus menü kirajzolása. items_keys: a nyelvi kulcsok listája."""
         self.clear()
-        self.oled.text(self.get_text("menu_title"), 10, 0, 1)
+        self.oled.text(self.get_text(title_key), 10, 0, 1)
         
         # Navigációs nyilak és szöveg
         key = items_keys[selected_idx]
@@ -102,20 +102,21 @@ class DisplayManager:
         
         self.show()
 
-    def draw_language_selector(self, lang_list, selected_idx):
-        """Nyelvválasztó képernyő."""
+    def draw_value_selector(self, title_key, current_val, unit_key=""):
+        """Értékválasztó képernyő (pl. nyelv, szám)."""
         self.clear()
-        self.oled.text(self.get_text("mode_language"), 10, 0, 1)
+        self.oled.text(self.get_text(title_key), 0, 0, 1)
         
-        lang_code = lang_list[selected_idx]
-        # A nyelv nevét az adott nyelv saját szótárából vesszük, vagy az aktuálisból?
-        # Érdemes a nyelv saját nevét kiírni (pl. Deutsch, Magyar)
-        lang_name = locales.get_locale(lang_code).get("lang_name", lang_code)
-        
-        text_pos_x = max(0, (config.OLED_WIDTH - (len(lang_name) * 8)) // 2)
+        # Érték szövegének formázása
+        if unit_key:
+            val_text = f"{current_val} {self.get_text(unit_key)}"
+        else:
+            val_text = str(current_val)
+            
+        text_pos_x = max(0, (config.OLED_WIDTH - (len(val_text) * 8)) // 2)
         
         self.oled.text("<", 0, 16, 1)
-        self.oled.text(lang_name, text_pos_x, 16, 1)
+        self.oled.text(val_text, text_pos_x, 16, 1)
         self.oled.text(">", config.OLED_WIDTH - 8, 16, 1)
         
         self.show()
@@ -147,7 +148,6 @@ class DisplayManager:
         else:
             if target_rpm is not None:
                 # Target módban a PWM helyett a Cél RPM látszik
-                # "CEL: 1500"
                 self.oled.text(f"{self.get_text('target')}:{target_rpm}", 0, 12, 1)
             else:
                 # Normál módban PWM %
@@ -163,4 +163,4 @@ class DisplayManager:
         
         self.show()
 
-# Utolsó módosítás: 2026. február 05. 22:20:00
+# Utolsó módosítás: 2026. február 06. 09:05:00

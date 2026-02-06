@@ -1,5 +1,5 @@
 # Fájl helye: /inputs.py
-# Funkció: Gombok kezelése aszinkron módon, pergésmentesítéssel (debounce).
+# Funkció: Gombok kezelése aszinkron módon, dinamikusan állítható pergésmentesítéssel.
 
 from machine import Pin
 import uasyncio as asyncio
@@ -16,6 +16,10 @@ class Button:
         # Háttérfolyamat indítása a gomb figyelésére
         asyncio.create_task(self._monitor())
 
+    def update_debounce(self, new_ms):
+        """Debounce érték frissítése futás közben."""
+        self.debounce_ms = new_ms
+
     async def _monitor(self):
         while True:
             current_val = self.pin.value()
@@ -23,14 +27,16 @@ class Button:
             # Aktív alacsony (PULL_UP miatt 0 ha lenyomva)
             if current_val == 0:
                 now = time.ticks_ms()
+                # Csak akkor érzékeljük, ha eltelt a debounce idő az előző óta
                 if not self._is_pressed and time.ticks_diff(now, self.last_press_time) > self.debounce_ms:
                     self.last_press_time = now
                     self._is_pressed = True
                     if self.callback:
                         self.callback() # Callback hívása
             else:
+                # Felengedéskor reseteljük a belső állapotot, de az időzítőt nem
                 self._is_pressed = False
                 
             await asyncio.sleep_ms(20) # Poll interval
 
-# Utolsó módosítás: 2026. február 05. 22:15:00
+# Utolsó módosítás: 2026. február 06. 09:05:00
